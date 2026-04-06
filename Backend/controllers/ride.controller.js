@@ -19,7 +19,6 @@ module.exports.createRide = async (req, res) => {
       destination,
       vehicleType,
     });
-    res.status(201).json(ride);
 
     const pickupCoordinates = await mapService.getAddressCoordinate(pickup);
 
@@ -41,6 +40,7 @@ module.exports.createRide = async (req, res) => {
         data: rideWithUser,
       });
     });
+    res.status(201).json(ride);
   } catch (err) {
     console.log(err);
     return res.status(500).json({ message: err.message });
@@ -137,5 +137,4 @@ module.exports.endRide = async (req, res) => {
   } catch (err) {
     return res.status(500).json({ message: err.message });
   }
-  s;
 };
