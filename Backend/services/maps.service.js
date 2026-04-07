@@ -33,29 +33,42 @@ module.exports.getDistanceTime = async (origin, destination) => {
     throw new Error("Origin and destination are required");
   }
 
-  // origin & destination should be: "lat,lng"
-  const url = `https://router.project-osrm.org/route/v1/driving/${origin};${destination}?overview=false`;
+  try {
+    // 1. Convert plain text addresses to coordinates using our existing function
+    const originCoords = await module.exports.getAddressCoordinate(origin);
+    const destinationCoords =
+      await module.exports.getAddressCoordinate(destination);
 
-  const response = await axios.get(url);
+    // 2. OSRM strictly expects "longitude,latitude" (lng first!)
+    const originStr = `${originCoords.lng},${originCoords.lat}`;
+    const destinationStr = `${destinationCoords.lng},${destinationCoords.lat}`;
 
-  if (!response.data.routes.length) {
-    throw new Error("No routes found");
+    // 3. Make the OSRM request with the correct coordinate strings
+    const url = `https://router.project-osrm.org/route/v1/driving/${originStr};${destinationStr}?overview=false`;
+
+    const response = await axios.get(url);
+
+    if (!response.data.routes || !response.data.routes.length) {
+      throw new Error("No routes found");
+    }
+
+    const route = response.data.routes[0];
+
+    return {
+      distance: {
+        value: route.distance, // meters
+        text: `${(route.distance / 1000).toFixed(2)} km`,
+      },
+      duration: {
+        value: route.duration, // seconds
+        text: `${Math.ceil(route.duration / 60)} mins`,
+      },
+    };
+  } catch (err) {
+    console.error("Error calculating distance/time:", err.message);
+    throw err;
   }
-
-  const route = response.data.routes[0];
-
-  return {
-    distance: {
-      value: route.distance, // meters
-      text: `${(route.distance / 1000).toFixed(2)} km`,
-    },
-    duration: {
-      value: route.duration, // seconds
-      text: `${Math.ceil(route.duration / 60)} mins`,
-    },
-  };
 };
-
 module.exports.getAutoCompleteSuggestions = async (input) => {
   if (!input) throw new Error("Input is required");
 
